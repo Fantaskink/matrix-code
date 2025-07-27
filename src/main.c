@@ -6,30 +6,23 @@
 #include <time.h>
 #include <stdlib.h>
 
-#if defined(_WIN32) || defined(_WIN64)
-#include <windows.h>
-void delay_ms(int milliseconds) {
-    Sleep(milliseconds);
-}
-#else
-#include <unistd.h>
-void delay_ms(int milliseconds) {
-    struct timespec ts;
-    ts.tv_sec = milliseconds / 1000;
-    ts.tv_nsec = (milliseconds % 1000) * 1000000;
-    nanosleep(&ts, NULL);
-}
-#endif
-
-#define COLOR_BRIGHT_GREEN 8
-#define COLOR_DIMMER_GREEN 9
-#define COLOR_DARK_GREEN 10
+#define COLOR_VERY_BRIGHT_GREEN 8
+#define COLOR_BRIGHT_GREEN 9
+#define COLOR_DIMMER_GREEN 10
+#define COLOR_DARK_GREEN 11
 
 void handle_winch(int sig);
 int init_colors();
 wchar_t get_random_symbol();
 
-const wchar_t *matrix_symbols = L"日ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ012345789ZT:・.=*+-<>¦｜╌";
+const wchar_t *matrix_symbols = L"日ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ012345789Z:・.=*+-<>¦｜╌";
+
+typedef struct
+{
+    wchar_t symbol;
+    int age;
+    int active;
+} Glyph;
 
 int main()
 {
@@ -41,7 +34,7 @@ int main()
     signal(SIGWINCH, handle_winch);
 
     initscr();                       // Initialize the ncurses screen
-    curs_set(0); // 0 = invisible, 1 = normal, 2 = very visible (if supported)
+    curs_set(0);                     // 0 = invisible, 1 = normal, 2 = very visible (if supported)
     getmaxyx(stdscr, height, width); // Get updated size
     cbreak();
     noecho();
@@ -52,30 +45,83 @@ int main()
         return 1;
     }
 
-    attron(COLOR_PAIR(1));
+    Glyph char_matrix[height][width];
 
-    wchar_t char_matrix[width][height];
+    for (size_t i = 0; i < height; i++)
+    {
+        for (size_t j = 0; j < width; j++)
+        {
+            char_matrix[i][j].active = 0;
+        }
+    }
 
     while (1)
     {
         clear(); // Clear screen
 
-        wchar_t symbol[2];
-        symbol[0] = get_random_symbol();
-        symbol[1] = L'\0';
-        mvaddwstr(3, 5, symbol);
+        //if (rand() % 2 == 1) // 25% chance of spawning a new glyph
+        if(1)
+        {
+            int random_x = rand() % width;
+            if (char_matrix[0][random_x].active == 0)
+            {
+                char_matrix[0][random_x].active = 1;
+                char_matrix[0][random_x].age = 0;
+                char_matrix[0][random_x].symbol = get_random_symbol();
+            }
+        }
 
-        /*
-        // mvprintw(0, 0, "Terminal size: %d rows x %d cols", height, width);
-        */
-        // mvprintw(1, 0, "Resize the terminal or press 'q' to quit.");
+        for (int i = height - 1; i >= 0; i--)
+        {
+            for (size_t j = 0; j < width; j++)
+            {
+                Glyph *current = &char_matrix[i][j];
+                if (!current->active)
+                {
+                    continue; // Skip inactive glyphs
+                }
+
+                if (current->age == 0)
+                {
+                    attron(COLOR_PAIR(1)); // Set white color for glyph
+                    if (i == height - 1)
+                    {
+                        current->active = 0; // Deactive if glyph is at the bottom of the screen
+                    }
+                    else
+                    {
+                        char_matrix[i + 1][j].active = 1; // Otherwise, activate glyph below
+                        char_matrix[i + 1][j].symbol = get_random_symbol();
+                        char_matrix[i + 1][j].age = 0;
+                    }
+                }
+
+                if (current->age > 0)
+                {
+                    attron(COLOR_PAIR(2)); // Set bright green color for glyph
+                }
+
+                if (current->age > 25)
+                {
+                    attron(COLOR_PAIR(3)); // Set darker green color for glyph
+                }
+
+                if (current->age > height)
+                {
+                    current->active = 0;
+                }
+
+                wchar_t symbol[2];
+                symbol[0] = current->symbol;
+                symbol[1] = L'\0';
+                mvaddwstr(i, j, symbol);
+
+                current->age++;
+            }
+        }
+
         refresh();
-
-        delay_ms(250); // Delay for 0.25 seconds
-
-        //int ch = getch();
-        //if (ch == 'q')
-        //    break;
+        napms(100); // Delay for 0.25 seconds
     }
 
     endwin(); // Restore normal terminal behavior
@@ -108,13 +154,15 @@ int init_colors()
 
     start_color();
     init_color(COLOR_BLACK, 0, 0, 0);
+    init_color(COLOR_VERY_BRIGHT_GREEN, 700, 1000, 780);
     init_color(COLOR_BRIGHT_GREEN, 0, 1000, 255);
     init_color(COLOR_DIMMER_GREEN, 0, 560, 67);
     init_color(COLOR_DARK_GREEN, 0, 231, 0);
 
-    init_pair(1, COLOR_BRIGHT_GREEN, COLOR_BLACK);
-    init_pair(2, COLOR_DIMMER_GREEN, COLOR_BLACK);
-    init_pair(3, COLOR_DARK_GREEN, COLOR_BLACK);
+    init_pair(1, COLOR_VERY_BRIGHT_GREEN, COLOR_BLACK);
+    init_pair(2, COLOR_BRIGHT_GREEN, COLOR_BLACK);
+    init_pair(3, COLOR_DIMMER_GREEN, COLOR_BLACK);
+    init_pair(4, COLOR_DARK_GREEN, COLOR_BLACK);
 
     return 0;
 }
