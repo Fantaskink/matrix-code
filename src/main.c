@@ -59,8 +59,8 @@ int main()
     {
         clear(); // Clear screen
 
-        //if (rand() % 2 == 1) // 25% chance of spawning a new glyph
-        if(1)
+        // if (rand() % 2 == 1) // 25% chance of spawning a new glyph
+        if (1)
         {
             int random_x = rand() % width;
             if (char_matrix[0][random_x].active == 0)
@@ -84,11 +84,8 @@ int main()
                 if (current->age == 0)
                 {
                     attron(COLOR_PAIR(1)); // Set white color for glyph
-                    if (i == height - 1)
-                    {
-                        current->active = 0; // Deactive if glyph is at the bottom of the screen
-                    }
-                    else
+                    
+                    if (i < height - 1) // Only activate glyph below if not at bottom row
                     {
                         char_matrix[i + 1][j].active = 1; // Otherwise, activate glyph below
                         char_matrix[i + 1][j].symbol = get_random_symbol();
@@ -101,9 +98,14 @@ int main()
                     attron(COLOR_PAIR(2)); // Set bright green color for glyph
                 }
 
-                if (current->age > 25)
+                if (current->age > 20)
                 {
                     attron(COLOR_PAIR(3)); // Set darker green color for glyph
+                }
+
+                if (current->age > 30)
+                {
+                    attron(COLOR_PAIR(4)); // Set darker green color for glyph
                 }
 
                 if (current->age > height)
@@ -121,7 +123,7 @@ int main()
         }
 
         refresh();
-        napms(100); // Delay for 0.25 seconds
+        napms(100); // Delay for 0.1 seconds
     }
 
     endwin(); // Restore normal terminal behavior
