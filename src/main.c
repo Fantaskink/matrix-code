@@ -6,6 +6,21 @@
 #include <time.h>
 #include <stdlib.h>
 
+#if defined(_WIN32) || defined(_WIN64)
+#include <windows.h>
+void delay_ms(int milliseconds) {
+    Sleep(milliseconds);
+}
+#else
+#include <unistd.h>
+void delay_ms(int milliseconds) {
+    struct timespec ts;
+    ts.tv_sec = milliseconds / 1000;
+    ts.tv_nsec = (milliseconds % 1000) * 1000000;
+    nanosleep(&ts, NULL);
+}
+#endif
+
 #define COLOR_BRIGHT_GREEN 8
 #define COLOR_DIMMER_GREEN 9
 #define COLOR_DARK_GREEN 10
@@ -26,6 +41,7 @@ int main()
     signal(SIGWINCH, handle_winch);
 
     initscr();                       // Initialize the ncurses screen
+    curs_set(0); // 0 = invisible, 1 = normal, 2 = very visible (if supported)
     getmaxyx(stdscr, height, width); // Get updated size
     cbreak();
     noecho();
@@ -38,11 +54,10 @@ int main()
 
     attron(COLOR_PAIR(1));
 
-    char char_matrix[width][height];
+    wchar_t char_matrix[width][height];
 
     while (1)
     {
-
         clear(); // Clear screen
 
         wchar_t symbol[2];
@@ -50,24 +65,17 @@ int main()
         symbol[1] = L'\0';
         mvaddwstr(3, 5, symbol);
 
-            /*
-            // mvprintw(0, 0, "Terminal size: %d rows x %d cols", height, width);
-            mvprintw(0, 0, "a");
-            mvprintw(0, 10, "a");
-            attron(COLOR_PAIR(2));
-            mvprintw(1, 0, "a");
-            mvprintw(2, 0, "a");
-            mvprintw(3, 0, "a");
-            mvprintw(4, 0, "a");
-            attron(COLOR_PAIR(1));
-            mvprintw(5, 0, "a");
-            */
-            // mvprintw(1, 0, "Resize the terminal or press 'q' to quit.");
-            refresh();
+        /*
+        // mvprintw(0, 0, "Terminal size: %d rows x %d cols", height, width);
+        */
+        // mvprintw(1, 0, "Resize the terminal or press 'q' to quit.");
+        refresh();
 
-        int ch = getch();
-        if (ch == 'q')
-            break;
+        delay_ms(250); // Delay for 0.25 seconds
+
+        //int ch = getch();
+        //if (ch == 'q')
+        //    break;
     }
 
     endwin(); // Restore normal terminal behavior
