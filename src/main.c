@@ -73,7 +73,7 @@ int main()
 
         for (int i = height - 1; i >= 0; i--)
         {
-            for (size_t j = 0; j < width; j++)
+            for (int j = 0; j < width; j++)
             {
                 Glyph *current = &glyph_matrix[i][j];
                 if (!current->active)
@@ -156,7 +156,7 @@ int init_colors()
 
     start_color();
     init_color(COLOR_BLACK, 0, 0, 0);
-    init_color(COLOR_VERY_BRIGHT_GREEN, 700, 1000, 780);
+    init_color(COLOR_VERY_BRIGHT_GREEN, 1000, 1000, 1000);
     init_color(COLOR_BRIGHT_GREEN, 0, 1000, 255);
     init_color(COLOR_DIMMER_GREEN, 0, 560, 67);
     init_color(COLOR_DARK_GREEN, 0, 231, 0);
