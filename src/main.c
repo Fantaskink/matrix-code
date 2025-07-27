@@ -45,29 +45,29 @@ int main()
         return 1;
     }
 
-    Glyph char_matrix[height][width];
+    Glyph glyph_matrix[height][width];
 
     for (size_t i = 0; i < height; i++)
     {
         for (size_t j = 0; j < width; j++)
         {
-            char_matrix[i][j].active = 0;
+            glyph_matrix[i][j].active = 0;
         }
     }
 
     while (1)
     {
-        clear(); // Clear screen
+        clear();
 
         // if (rand() % 2 == 1) // 25% chance of spawning a new glyph
         if (1)
         {
             int random_x = rand() % width;
-            if (char_matrix[0][random_x].active == 0)
+            if (glyph_matrix[0][random_x].active == 0)
             {
-                char_matrix[0][random_x].active = 1;
-                char_matrix[0][random_x].age = 0;
-                char_matrix[0][random_x].symbol = get_random_symbol();
+                glyph_matrix[0][random_x].active = 1;
+                glyph_matrix[0][random_x].age = 0;
+                glyph_matrix[0][random_x].symbol = get_random_symbol();
             }
         }
 
@@ -75,7 +75,7 @@ int main()
         {
             for (size_t j = 0; j < width; j++)
             {
-                Glyph *current = &char_matrix[i][j];
+                Glyph *current = &glyph_matrix[i][j];
                 if (!current->active)
                 {
                     continue; // Skip inactive glyphs
@@ -87,9 +87,9 @@ int main()
                     
                     if (i < height - 1) // Only activate glyph below if not at bottom row
                     {
-                        char_matrix[i + 1][j].active = 1; // Otherwise, activate glyph below
-                        char_matrix[i + 1][j].symbol = get_random_symbol();
-                        char_matrix[i + 1][j].age = 0;
+                        glyph_matrix[i + 1][j].active = 1; // Otherwise, activate glyph below
+                        glyph_matrix[i + 1][j].symbol = get_random_symbol();
+                        glyph_matrix[i + 1][j].age = 0;
                     }
                 }
 
