@@ -11,18 +11,19 @@
 #define COLOR_DIMMER_GREEN 10
 #define COLOR_DARK_GREEN 11
 
-void handle_winch(int sig);
-int init_colors();
-wchar_t get_random_symbol();
-
-const wchar_t *matrix_symbols = L"日ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ012345789Z:・.=*+-<>¦｜╌";
-
 typedef struct
 {
     wchar_t symbol;
     int age;
     int active;
 } Glyph;
+
+void handle_winch(int sig);
+int init_colors();
+wchar_t get_random_symbol();
+void activate_glyph(Glyph *glyph);
+
+const wchar_t *matrix_symbols = L"日ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ012345789Z:・.=*+-<>¦｜╌";
 
 int main()
 {
@@ -33,9 +34,9 @@ int main()
 
     signal(SIGWINCH, handle_winch);
 
-    initscr();                       // Initialize the ncurses screen
+    initscr();
     curs_set(0);                     // 0 = invisible, 1 = normal, 2 = very visible (if supported)
-    getmaxyx(stdscr, height, width); // Get updated size
+    getmaxyx(stdscr, height, width); // Get terminal window size
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
@@ -62,12 +63,10 @@ int main()
         // if (rand() % 2 == 1) // 25% chance of spawning a new glyph
         if (1)
         {
-            int random_x = rand() % width;
-            if (glyph_matrix[0][random_x].active == 0)
+            int random_column = rand() % width;
+            if (glyph_matrix[0][random_column].active == 0)
             {
-                glyph_matrix[0][random_x].active = 1;
-                glyph_matrix[0][random_x].age = 0;
-                glyph_matrix[0][random_x].symbol = get_random_symbol();
+                activate_glyph(&glyph_matrix[0][random_column]);
             }
         }
 
@@ -84,12 +83,10 @@ int main()
                 if (current->age == 0)
                 {
                     attron(COLOR_PAIR(1)); // Set white color for glyph
-                    
+
                     if (i < height - 1) // Only activate glyph below if not at bottom row
                     {
-                        glyph_matrix[i + 1][j].active = 1; // Otherwise, activate glyph below
-                        glyph_matrix[i + 1][j].symbol = get_random_symbol();
-                        glyph_matrix[i + 1][j].age = 0;
+                        activate_glyph(&glyph_matrix[i + 1][j]);
                     }
                 }
 
@@ -173,4 +170,11 @@ wchar_t get_random_symbol()
 {
     const size_t matrix_symbols_len = wcslen(matrix_symbols);
     return matrix_symbols[rand() % matrix_symbols_len];
+}
+
+void activate_glyph(Glyph *glyph)
+{
+    glyph->active = 1;
+    glyph->symbol = get_random_symbol();
+    glyph->age = 0;
 }
