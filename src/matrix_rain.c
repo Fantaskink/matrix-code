@@ -114,11 +114,10 @@ int main()
 
             if (head_row > 30 && head_row - 30 < height)
             {
-                attron(COLOR_PAIR(4)); // Set darker green color for glyph
+                attron(COLOR_PAIR(4)); // Set even darker green color for glyph
                 symbol[0] = glyph_matrix[head_row - 30][column];
                 mvaddwstr(head_row - 30, column, symbol);
             }
-            
 
             int tail_row = current->head_row - current->length;
             if (tail_row >= 0 && tail_row < height)
@@ -136,7 +135,7 @@ int main()
             current->head_row++;
         }
 
-        // Only add new trail if we have space and randomly
+        // Only add new trail if we have space
         if (num_trails < max_trails)
         {
             // Find first inactive slot
@@ -145,10 +144,9 @@ int main()
                 if (!trails[i].active)
                 {
                     int random_column = rand() % width;
-
                     if (glyph_matrix[0][random_column] != L' ')
                     {
-                        continue;
+                        continue; // Skip if column is already occupied
                     }
                     trails[i].column = random_column;
                     trails[i].head_row = 0;
