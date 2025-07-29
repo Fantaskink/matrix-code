@@ -12,7 +12,7 @@
 #define COLOR_DIMMER_GREEN 10
 #define COLOR_DARK_GREEN 11
 
-#define MAX_TRAIL_LENGTH 30
+#define MAX_TRAIL_LENGTH 40
 
 typedef struct
 {
@@ -51,7 +51,7 @@ int main()
     }
 
     wchar_t glyph_matrix[height][width];
-    
+
     // Initialize glyph_matrix with spaces
     for (int i = 0; i < height; i++)
     {
@@ -66,7 +66,7 @@ int main()
     int max_trails = width + width * (height / MAX_TRAIL_LENGTH);
     Trail trails[max_trails];
     int num_trails = 0;
-    
+
     // Initialize all trails as inactive
     for (int i = 0; i < max_trails; i++)
     {
@@ -81,11 +81,11 @@ int main()
         for (size_t i = 0; i < max_trails; i++)
         {
             Trail *current = &trails[i];
-            
+
             // Skip inactive trails
             if (!current->active)
                 continue;
-                
+
             int head_row = current->head_row;
             int column = current->column;
 
@@ -105,10 +105,26 @@ int main()
                 mvaddwstr(head_row - 1, column, symbol);
             }
 
+            if (head_row > 20 && head_row - 20 < height)
+            {
+                attron(COLOR_PAIR(3)); // Set darker green color for glyph
+                symbol[0] = glyph_matrix[head_row - 20][column];
+                mvaddwstr(head_row - 20, column, symbol);
+            }
+
+            if (head_row > 30 && head_row - 30 < height)
+            {
+                attron(COLOR_PAIR(4)); // Set darker green color for glyph
+                symbol[0] = glyph_matrix[head_row - 30][column];
+                mvaddwstr(head_row - 30, column, symbol);
+            }
+            
+
             int tail_row = current->head_row - current->length;
             if (tail_row >= 0 && tail_row < height)
             {
                 mvaddwstr(tail_row, column, L" ");
+                glyph_matrix[tail_row][column] = L' ';
             }
 
             if (tail_row >= height)
@@ -121,14 +137,20 @@ int main()
         }
 
         // Only add new trail if we have space and randomly
-        if (num_trails < max_trails && rand() % 10 == 0)
+        if (num_trails < max_trails)
         {
             // Find first inactive slot
             for (int i = 0; i < max_trails; i++)
             {
                 if (!trails[i].active)
                 {
-                    trails[i].column = rand() % width;
+                    int random_column = rand() % width;
+
+                    if (glyph_matrix[0][random_column] != L' ')
+                    {
+                        continue;
+                    }
+                    trails[i].column = random_column;
                     trails[i].head_row = 0;
                     trails[i].length = MAX_TRAIL_LENGTH;
                     trails[i].max_length = MAX_TRAIL_LENGTH;
