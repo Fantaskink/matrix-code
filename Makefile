@@ -1,7 +1,7 @@
 # Makefile for compiling with ncursesw from Homebrew
 
 CC = gcc
-SRC = src/main.c
+SRC = src/matrix_rain.c
 OUT = matrix
 
 # Homebrew ncursesw paths (adjust if needed)
