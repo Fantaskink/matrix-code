@@ -1,5 +1,4 @@
 #define _XOPEN_SOURCE_EXTENDED 1
-#define _GNU_SOURCE
 #include <locale.h>
 #include <wchar.h>
 #include <ncursesw/ncurses.h>
@@ -52,13 +51,10 @@ int main()
 
     wchar_t glyph_matrix[height][width];
 
-    // Initialize glyph_matrix with spaces
-    for (int i = 0; i < height; i++)
+    // Initialize glyph_matrix upper row with spaces
+    for (int i = 0; i < width; i++)
     {
-        for (int j = 0; j < width; j++)
-        {
-            glyph_matrix[i][j] = L' ';
-        }
+        glyph_matrix[0][i] = L' ';
     }
 
     /* Trails for a full screen width + extra if the screen has space for multiple trails
