@@ -66,12 +66,14 @@ int main()
     int message_len = wcslen(message);
     int middle_row = height / 2;
     int message_columns[message_len];
+    int message_revealed[message_len]; // Track which message characters have been revealed
 
     int leftmost_column = (width / 2) - (message_len / 2);
 
     for (int i = 0; i < message_len; i++)
     {
         message_columns[i] = leftmost_column + i;
+        message_revealed[i] = 0; // Initially no characters are revealed
     }
 
     // dynamically allocate glyph_matrix
@@ -116,39 +118,115 @@ int main()
             int head_row = current->head_row;
             int column = current->column;
 
-            if (head_row == middle_row && is_message_column(message_len, column, message_columns))
+            /* HEAD - reveal message character if head passes over it */
+            if (head_row >= 0 && head_row < height)
             {
-                wchar_t ch = get_message_char(message_len, column, message_columns, message);
-                draw_symbol(head_row, column, ch, PAIR_WHITE, glyph_matrix, width, height);
-            }
-            else
-            {
-                /* HEAD */
-                if (head_row >= 0 && head_row < height)
+                if (head_row == middle_row && is_message_column(message_len, column, message_columns))
+                {
+                    // Reveal the message character at this position
+                    for (int j = 0; j < message_len; j++)
+                    {
+                        if (message_columns[j] == column)
+                        {
+                            message_revealed[j] = 1;
+                            break;
+                        }
+                    }
+                    // Draw the revealed message character
+                    wchar_t ch = get_message_char(message_len, column, message_columns, message);
+                    draw_symbol(head_row, column, ch, PAIR_WHITE, glyph_matrix, width, height);
+                }
+                else
                 {
                     wchar_t ch = get_random_symbol();
                     draw_symbol(head_row, column, ch, PAIR_WHITE, glyph_matrix, width, height);
                 }
+            }
 
-                /* BODY: immediate above head */
-                int r = head_row - 1;
-                if (r >= 0 && r < height)
+            /* BODY: immediate above head - but skip if it would overwrite revealed message */
+            int r = head_row - 1;
+            if (r >= 0 && r < height)
+            {
+                if (r == middle_row && is_message_column(message_len, column, message_columns))
+                {
+                    // Check if this message character is revealed
+                    int is_revealed = 0;
+                    for (int j = 0; j < message_len; j++)
+                    {
+                        if (message_columns[j] == column && message_revealed[j])
+                        {
+                            is_revealed = 1;
+                            break;
+                        }
+                    }
+                    if (!is_revealed)
+                    {
+                        // Not revealed yet, draw normal trail character
+                        wchar_t ch = glyph_matrix[r][column];
+                        draw_symbol(r, column, ch, PAIR_BRIGHT_GREEN, glyph_matrix, width, height);
+                    }
+                }
+                else
                 {
                     wchar_t ch = glyph_matrix[r][column];
                     draw_symbol(r, column, ch, PAIR_BRIGHT_GREEN, glyph_matrix, width, height);
                 }
+            }
 
-                /* DIMMER: 21 rows above head (use head_row - 21) */
-                r = head_row - 21;
-                if (r >= 0 && r < height)
+            /* DIMMER: 21 rows above head - but skip if it would overwrite revealed message */
+            r = head_row - 21;
+            if (r >= 0 && r < height)
+            {
+                if (r == middle_row && is_message_column(message_len, column, message_columns))
+                {
+                    // Check if this message character is revealed
+                    int is_revealed = 0;
+                    for (int j = 0; j < message_len; j++)
+                    {
+                        if (message_columns[j] == column && message_revealed[j])
+                        {
+                            is_revealed = 1;
+                            break;
+                        }
+                    }
+                    if (!is_revealed)
+                    {
+                        // Not revealed yet, draw normal trail character
+                        wchar_t ch = glyph_matrix[r][column];
+                        draw_symbol(r, column, ch, PAIR_DIMMER_GREEN, glyph_matrix, width, height);
+                    }
+                }
+                else
                 {
                     wchar_t ch = glyph_matrix[r][column];
                     draw_symbol(r, column, ch, PAIR_DIMMER_GREEN, glyph_matrix, width, height);
                 }
+            }
 
-                /* DARK: 31 rows above head (use head_row - 31) */
-                r = head_row - 31;
-                if (r >= 0 && r < height)
+            /* DARK: 31 rows above head - but skip if it would overwrite revealed message */
+            r = head_row - 31;
+            if (r >= 0 && r < height)
+            {
+                if (r == middle_row && is_message_column(message_len, column, message_columns))
+                {
+                    // Check if this message character is revealed
+                    int is_revealed = 0;
+                    for (int j = 0; j < message_len; j++)
+                    {
+                        if (message_columns[j] == column && message_revealed[j])
+                        {
+                            is_revealed = 1;
+                            break;
+                        }
+                    }
+                    if (!is_revealed)
+                    {
+                        // Not revealed yet, draw normal trail character
+                        wchar_t ch = glyph_matrix[r][column];
+                        draw_symbol(r, column, ch, PAIR_DARK_GREEN, glyph_matrix, width, height);
+                    }
+                }
+                else
                 {
                     wchar_t ch = glyph_matrix[r][column];
                     draw_symbol(r, column, ch, PAIR_DARK_GREEN, glyph_matrix, width, height);
@@ -159,7 +237,29 @@ int main()
 
             if (tail_row >= 0 && tail_row < height)
             {
-                erase_symbol(tail_row, column, glyph_matrix, width);
+                // Don't erase revealed message characters
+                if (tail_row == middle_row && is_message_column(message_len, column, message_columns))
+                {
+                    // Check if this message character is revealed
+                    int is_revealed = 0;
+                    for (int j = 0; j < message_len; j++)
+                    {
+                        if (message_columns[j] == column && message_revealed[j])
+                        {
+                            is_revealed = 1;
+                            break;
+                        }
+                    }
+                    if (!is_revealed)
+                    {
+                        // Not revealed yet, can erase
+                        erase_symbol(tail_row, column, glyph_matrix, width);
+                    }
+                }
+                else
+                {
+                    erase_symbol(tail_row, column, glyph_matrix, width);
+                }
             }
 
             if (tail_row >= height)
@@ -169,6 +269,17 @@ int main()
             }
 
             current->head_row++;
+        }
+
+        // Draw only the revealed message characters
+        for (int i = 0; i < message_len; i++)
+        {
+            if (message_revealed[i])
+            {
+                int msg_col = message_columns[i];
+                wchar_t ch = message[i];
+                draw_symbol(middle_row, msg_col, ch, PAIR_WHITE, glyph_matrix, width, height);
+            }
         }
 
         // Add new trail if space available
