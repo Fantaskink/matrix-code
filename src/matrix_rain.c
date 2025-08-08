@@ -69,6 +69,9 @@ int main()
     int middle_row = height / 2;
     int message_columns[message_len];
     int message_revealed[message_len]; // Track which message characters have been revealed
+    int frame_counter = 0;
+    int last_message_spawn_frame = 0;
+    int message_spawn_frame_interval = 5; // Spawn a message trail every 5 frames (0.5 seconds at 100ms per frame)
 
     int leftmost_column = (width / 2) - (message_len / 2);
 
@@ -304,38 +307,85 @@ int main()
             }
         }
 
+        // Smart trail spawning - prioritize unrevealed message columns
+        frame_counter++;
+        int should_spawn_message_trail = (frame_counter - last_message_spawn_frame) >= message_spawn_frame_interval;
+
         // Add new trail if space available
         if (num_trails < max_trails)
         {
-            for (int i = 0; i < max_trails; i++)
+            int spawned = 0;
+            
+            // First priority: spawn a trail in an unrevealed message column if it's time
+            if (should_spawn_message_trail)
             {
-                if (!trails[i].active)
+                for (int msg_idx = 0; msg_idx < message_len; msg_idx++)
                 {
-                    int random_column = rand() % width;
-
-                    // avoid starting in or next to an occupied cell (also treats right-half as occupied)
-                    int left_ok = (glyph_matrix[0][random_column] == L' ');
-                    int left_left_ok = (random_column > 0) ? (glyph_matrix[0][random_column - 1] == L' ') : 1;
-                    int right_ok = (random_column < width - 1) ? (glyph_matrix[0][random_column + 1] == L' ') : 1;
-
-                    if (!left_ok || !left_left_ok || !right_ok)
+                    if (!message_revealed[msg_idx])
                     {
-                        continue;
+                        int msg_col = message_columns[msg_idx];
+                        // Check if this column is available for a new trail
+                        int left_ok = (glyph_matrix[0][msg_col] == L' ');
+                        int left_left_ok = (msg_col > 0) ? (glyph_matrix[0][msg_col - 1] == L' ') : 1;
+                        int right_ok = (msg_col < width - 1) ? (glyph_matrix[0][msg_col + 1] == L' ') : 1;
+                        
+                        if (left_ok && left_left_ok && right_ok)
+                        {
+                            // Find an inactive trail to use
+                            for (int i = 0; i < max_trails; i++)
+                            {
+                                if (!trails[i].active)
+                                {
+                                    trails[i].column = msg_col;
+                                    trails[i].head_row = 0;
+                                    trails[i].length = MAX_TRAIL_LENGTH;
+                                    trails[i].max_length = MAX_TRAIL_LENGTH;
+                                    trails[i].active = 1;
+                                    num_trails++;
+                                    spawned = 1;
+                                    last_message_spawn_frame = frame_counter;
+                                    break;
+                                }
+                            }
+                            break; // Only spawn one message trail at a time
+                        }
                     }
+                }
+            }
+            
+            // Second priority: spawn regular random trails if we didn't spawn a message trail
+            if (!spawned)
+            {
+                for (int i = 0; i < max_trails; i++)
+                {
+                    if (!trails[i].active)
+                    {
+                        int random_column = rand() % width;
 
-                    trails[i].column = random_column;
-                    trails[i].head_row = 0;
-                    trails[i].length = MAX_TRAIL_LENGTH;
-                    trails[i].max_length = MAX_TRAIL_LENGTH;
-                    trails[i].active = 1;
-                    num_trails++;
-                    break;
+                        // avoid starting in or next to an occupied cell (also treats right-half as occupied)
+                        int left_ok = (glyph_matrix[0][random_column] == L' ');
+                        int left_left_ok = (random_column > 0) ? (glyph_matrix[0][random_column - 1] == L' ') : 1;
+                        int right_ok = (random_column < width - 1) ? (glyph_matrix[0][random_column + 1] == L' ') : 1;
+
+                        if (!left_ok || !left_left_ok || !right_ok)
+                        {
+                            continue;
+                        }
+
+                        trails[i].column = random_column;
+                        trails[i].head_row = 0;
+                        trails[i].length = MAX_TRAIL_LENGTH;
+                        trails[i].max_length = MAX_TRAIL_LENGTH;
+                        trails[i].active = 1;
+                        num_trails++;
+                        break;
+                    }
                 }
             }
         }
 
         refresh();
-        napms(10); // 0.1 second delay
+        napms(50); // 0.1 second delay
     }
 
     endwin();
