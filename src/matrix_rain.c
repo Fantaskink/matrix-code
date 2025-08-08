@@ -5,11 +5,11 @@
 #include <signal.h>
 #include <time.h>
 #include <stdlib.h>
+#include <stdio.h>
 
-#define COLOR_WHITE 8
-#define COLOR_BRIGHT_GREEN 9
-#define COLOR_DIMMER_GREEN 10
-#define COLOR_DARK_GREEN 11
+#define COLOR_BRIGHT_GREEN 8
+#define COLOR_DIMMER_GREEN 9
+#define COLOR_DARK_GREEN 10
 
 #define PAIR_WHITE 1
 #define PAIR_BRIGHT_GREEN 2
@@ -25,6 +25,7 @@ typedef struct
     int length;
     int max_length;
     int active;
+    int message_char;
 } Trail;
 
 void handle_winch(int sig);
@@ -33,6 +34,8 @@ wchar_t get_random_symbol();
 void draw_symbol(int row, int col, wchar_t ch, int color_pair,
                  wchar_t **glyph_matrix, int max_width, int max_height);
 void erase_symbol(int row, int col, wchar_t **glyph_matrix, int max_width);
+int is_message_column(int message_len, int column, int *message_columns);
+wchar_t get_message_char(int message_len, int column, int *message_columns, wchar_t *message);
 
 const wchar_t *matrix_symbols = L"日ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ012345789Z:・.=*+-<>¦｜╌";
 
@@ -57,13 +60,38 @@ int main()
         return 1;
     }
 
+    // TODO allow any message
+    // TODO ensure that message does not exceed screen width
+    wchar_t message[] = L"SKINK SYSTEMS";
+    int message_len = wcslen(message);
+    int middle_row = height / 2;
+    int message_columns[message_len];
+
+    int leftmost_column = (width / 2) - (message_len / 2);
+
+    for (int i = 0; i < message_len; i++)
+    {
+        message_columns[i] = leftmost_column + i;
+    }
+
     // dynamically allocate glyph_matrix
     wchar_t **glyph_matrix = malloc(height * sizeof(wchar_t *));
-    if (!glyph_matrix) { endwin(); return 1; }
+    if (!glyph_matrix)
+    {
+        endwin();
+        return 1;
+    }
     for (int i = 0; i < height; i++)
     {
         glyph_matrix[i] = malloc(width * sizeof(wchar_t));
-        if (!glyph_matrix[i]) { for (int k = 0; k < i; k++) free(glyph_matrix[k]); free(glyph_matrix); endwin(); return 1; }
+        if (!glyph_matrix[i])
+        {
+            for (int k = 0; k < i; k++)
+                free(glyph_matrix[k]);
+            free(glyph_matrix);
+            endwin();
+            return 1;
+        }
         for (int j = 0; j < width; j++)
             glyph_matrix[i][j] = L' ';
     }
@@ -88,38 +116,47 @@ int main()
             int head_row = current->head_row;
             int column = current->column;
 
-            /* HEAD */
-            if (head_row >= 0 && head_row < height)
+            if (head_row == middle_row && is_message_column(message_len, column, message_columns))
             {
-                wchar_t ch = get_random_symbol();
+                wchar_t ch = get_message_char(message_len, column, message_columns, message);
                 draw_symbol(head_row, column, ch, PAIR_WHITE, glyph_matrix, width, height);
             }
-
-            /* BODY: immediate above head */
-            int r = head_row - 1;
-            if (r >= 0 && r < height)
+            else
             {
-                wchar_t ch = glyph_matrix[r][column];
-                draw_symbol(r, column, ch, PAIR_BRIGHT_GREEN, glyph_matrix, width, height);
-            }
+                /* HEAD */
+                if (head_row >= 0 && head_row < height)
+                {
+                    wchar_t ch = get_random_symbol();
+                    draw_symbol(head_row, column, ch, PAIR_WHITE, glyph_matrix, width, height);
+                }
 
-            /* DIMMER: 21 rows above head (use head_row - 21) */
-            r = head_row - 21;
-            if (r >= 0 && r < height)
-            {
-                wchar_t ch = glyph_matrix[r][column];
-                draw_symbol(r, column, ch, PAIR_DIMMER_GREEN, glyph_matrix, width, height);
-            }
+                /* BODY: immediate above head */
+                int r = head_row - 1;
+                if (r >= 0 && r < height)
+                {
+                    wchar_t ch = glyph_matrix[r][column];
+                    draw_symbol(r, column, ch, PAIR_BRIGHT_GREEN, glyph_matrix, width, height);
+                }
 
-            /* DARK: 31 rows above head (use head_row - 31) */
-            r = head_row - 31;
-            if (r >= 0 && r < height)
-            {
-                wchar_t ch = glyph_matrix[r][column];
-                draw_symbol(r, column, ch, PAIR_DARK_GREEN, glyph_matrix, width, height);
+                /* DIMMER: 21 rows above head (use head_row - 21) */
+                r = head_row - 21;
+                if (r >= 0 && r < height)
+                {
+                    wchar_t ch = glyph_matrix[r][column];
+                    draw_symbol(r, column, ch, PAIR_DIMMER_GREEN, glyph_matrix, width, height);
+                }
+
+                /* DARK: 31 rows above head (use head_row - 31) */
+                r = head_row - 31;
+                if (r >= 0 && r < height)
+                {
+                    wchar_t ch = glyph_matrix[r][column];
+                    draw_symbol(r, column, ch, PAIR_DARK_GREEN, glyph_matrix, width, height);
+                }
             }
 
             int tail_row = current->head_row - current->length;
+
             if (tail_row >= 0 && tail_row < height)
             {
                 erase_symbol(tail_row, column, glyph_matrix, width);
@@ -165,7 +202,7 @@ int main()
         }
 
         refresh();
-        napms(100);
+        napms(100); // 0.1 second delay
     }
 
     endwin();
@@ -237,7 +274,8 @@ void draw_symbol(int row, int col, wchar_t ch, int color_pair,
         return; // nothing to draw
 
     int w = wcwidth(ch);
-    if (w == 2 && col == max_width - 1) {
+    if (w == 2 && col == max_width - 1)
+    {
         // Can't place wide char at last column
         return;
     }
@@ -245,12 +283,13 @@ void draw_symbol(int row, int col, wchar_t ch, int color_pair,
     attron(COLOR_PAIR(color_pair));
 
     // draw glyph (always write starting at leading cell)
-    wchar_t buf[2] = { ch, L'\0' };
+    wchar_t buf[2] = {ch, L'\0'};
     mvaddwstr(row, col, buf);
 
     // mark matrix: store the same wchar in both halves so later reads are sane
     glyph_matrix[row][col] = ch;
-    if (w == 2 && col + 1 < max_width) {
+    if (w == 2 && col + 1 < max_width)
+    {
         glyph_matrix[row][col + 1] = ch; // mark trailing cell with same char (occupied)
     }
 }
@@ -262,7 +301,8 @@ void erase_symbol(int row, int col, wchar_t **glyph_matrix, int max_width)
         return;
 
     wchar_t leading = glyph_matrix[row][col];
-    if (leading == L' ' || leading == 0) {
+    if (leading == L' ' || leading == 0)
+    {
         // nothing there; still ensure we clear the cell
         mvaddwstr(row, col, L" ");
         glyph_matrix[row][col] = L' ';
@@ -270,14 +310,42 @@ void erase_symbol(int row, int col, wchar_t **glyph_matrix, int max_width)
     }
 
     int w = wcwidth(leading);
-    if (w <= 0) w = 1;
+    if (w <= 0)
+        w = 1;
 
-    if (w == 2 && col < max_width - 1) {
+    if (w == 2 && col < max_width - 1)
+    {
         mvaddwstr(row, col, L"  "); // erase both halves in one call
         glyph_matrix[row][col] = L' ';
         glyph_matrix[row][col + 1] = L' ';
-    } else {
+    }
+    else
+    {
         mvaddwstr(row, col, L" ");
         glyph_matrix[row][col] = L' ';
     }
+}
+
+int is_message_column(int message_len, int column, int *message_columns)
+{
+    for (int i = 0; i < message_len; i++)
+    {
+        if (column == message_columns[i])
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+wchar_t get_message_char(int message_len, int column, int *message_columns, wchar_t *message)
+{
+    for (int i = 0; i < message_len; i++)
+    {
+        if (column == message_columns[i])
+        {
+            return message[i];
+        }
+    }
+    return L'\0';
 }
