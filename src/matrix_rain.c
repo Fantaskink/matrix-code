@@ -5,7 +5,6 @@
 #include <signal.h>
 #include <time.h>
 #include <stdlib.h>
-#include <wchar.h> // for wcwidth
 
 #define COLOR_WHITE 8
 #define COLOR_BRIGHT_GREEN 9
@@ -39,7 +38,7 @@ const wchar_t *matrix_symbols = L"日ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘ�
 
 int main()
 {
-    srand(time(NULL));
+    srand((unsigned)time(NULL));
 
     setlocale(LC_ALL, "");
     int height, width;
@@ -60,9 +59,11 @@ int main()
 
     // dynamically allocate glyph_matrix
     wchar_t **glyph_matrix = malloc(height * sizeof(wchar_t *));
+    if (!glyph_matrix) { endwin(); return 1; }
     for (int i = 0; i < height; i++)
     {
         glyph_matrix[i] = malloc(width * sizeof(wchar_t));
+        if (!glyph_matrix[i]) { for (int k = 0; k < i; k++) free(glyph_matrix[k]); free(glyph_matrix); endwin(); return 1; }
         for (int j = 0; j < width; j++)
             glyph_matrix[i][j] = L' ';
     }
@@ -78,7 +79,7 @@ int main()
 
     while (1)
     {
-        for (size_t i = 0; i < max_trails; i++)
+        for (size_t i = 0; i < (size_t)max_trails; i++)
         {
             Trail *current = &trails[i];
             if (!current->active)
@@ -87,28 +88,35 @@ int main()
             int head_row = current->head_row;
             int column = current->column;
 
-            if (head_row < height)
+            /* HEAD */
+            if (head_row >= 0 && head_row < height)
             {
                 wchar_t ch = get_random_symbol();
                 draw_symbol(head_row, column, ch, PAIR_WHITE, glyph_matrix, width, height);
             }
 
-            if (head_row > 0 && head_row <= height)
+            /* BODY: immediate above head */
+            int r = head_row - 1;
+            if (r >= 0 && r < height)
             {
-                wchar_t ch = glyph_matrix[head_row - 1][column];
-                draw_symbol(head_row - 1, column, ch, PAIR_BRIGHT_GREEN, glyph_matrix, width, height);
+                wchar_t ch = glyph_matrix[r][column];
+                draw_symbol(r, column, ch, PAIR_BRIGHT_GREEN, glyph_matrix, width, height);
             }
 
-            if (head_row > 20 && head_row - 20 < height)
+            /* DIMMER: 21 rows above head (use head_row - 21) */
+            r = head_row - 21;
+            if (r >= 0 && r < height)
             {
-                wchar_t ch = glyph_matrix[head_row - 21][column];
-                draw_symbol(head_row - 21, column, ch, PAIR_DIMMER_GREEN, glyph_matrix, width, height);
+                wchar_t ch = glyph_matrix[r][column];
+                draw_symbol(r, column, ch, PAIR_DIMMER_GREEN, glyph_matrix, width, height);
             }
 
-            if (head_row > 30 && head_row - 30 < height)
+            /* DARK: 31 rows above head (use head_row - 31) */
+            r = head_row - 31;
+            if (r >= 0 && r < height)
             {
-                wchar_t ch = glyph_matrix[head_row - 31][column];
-                draw_symbol(head_row - 31, column, ch, PAIR_DARK_GREEN, glyph_matrix, width, height);
+                wchar_t ch = glyph_matrix[r][column];
+                draw_symbol(r, column, ch, PAIR_DARK_GREEN, glyph_matrix, width, height);
             }
 
             int tail_row = current->head_row - current->length;
@@ -135,10 +143,12 @@ int main()
                 {
                     int random_column = rand() % width;
 
-                    // avoid starting in or next to an occupied cell
-                    if (glyph_matrix[0][random_column] != L' ' ||
-                        (random_column > 0 && glyph_matrix[0][random_column - 1] != L' ') ||
-                        (random_column < width - 1 && glyph_matrix[0][random_column + 1] != L' '))
+                    // avoid starting in or next to an occupied cell (also treats right-half as occupied)
+                    int left_ok = (glyph_matrix[0][random_column] == L' ');
+                    int left_left_ok = (random_column > 0) ? (glyph_matrix[0][random_column - 1] == L' ') : 1;
+                    int right_ok = (random_column < width - 1) ? (glyph_matrix[0][random_column + 1] == L' ') : 1;
+
+                    if (!left_ok || !left_left_ok || !right_ok)
                     {
                         continue;
                     }
@@ -169,6 +179,8 @@ int main()
 
 void handle_winch(int sig)
 {
+    // Reinitialize or handle resize in a real program.
+    // For simplicity we just call ncurses resize helpers.
     endwin();
     refresh();
     clear();
@@ -197,10 +209,10 @@ int init_colors()
     init_color(COLOR_DIMMER_GREEN, 0, 560, 67);
     init_color(COLOR_DARK_GREEN, 0, 231, 0);
 
-    init_pair(1, COLOR_WHITE, COLOR_BLACK);
-    init_pair(2, COLOR_BRIGHT_GREEN, COLOR_BLACK);
-    init_pair(3, COLOR_DIMMER_GREEN, COLOR_BLACK);
-    init_pair(4, COLOR_DARK_GREEN, COLOR_BLACK);
+    init_pair(PAIR_WHITE, COLOR_WHITE, COLOR_BLACK);
+    init_pair(PAIR_BRIGHT_GREEN, COLOR_BRIGHT_GREEN, COLOR_BLACK);
+    init_pair(PAIR_DIMMER_GREEN, COLOR_DIMMER_GREEN, COLOR_BLACK);
+    init_pair(PAIR_DARK_GREEN, COLOR_DARK_GREEN, COLOR_BLACK);
 
     return 0;
 }
@@ -211,11 +223,18 @@ wchar_t get_random_symbol()
     return matrix_symbols[rand() % matrix_symbols_len];
 }
 
+/* Draw a symbol at row,col — width-aware and bounds-guarded.
+ * For wide chars we also mark the right half in glyph_matrix by storing the same char
+ * in both cells. This keeps later reads consistent.
+ */
 void draw_symbol(int row, int col, wchar_t ch, int color_pair,
                  wchar_t **glyph_matrix, int max_width, int max_height)
 {
     if (row < 0 || row >= max_height || col < 0 || col >= max_width)
         return;
+
+    if (ch == L' ' || ch == 0)
+        return; // nothing to draw
 
     int w = wcwidth(ch);
     if (w == 2 && col == max_width - 1) {
@@ -224,22 +243,34 @@ void draw_symbol(int row, int col, wchar_t ch, int color_pair,
     }
 
     attron(COLOR_PAIR(color_pair));
+
+    // draw glyph (always write starting at leading cell)
     wchar_t buf[2] = { ch, L'\0' };
     mvaddwstr(row, col, buf);
 
+    // mark matrix: store the same wchar in both halves so later reads are sane
     glyph_matrix[row][col] = ch;
-    if (w == 2) {
-        glyph_matrix[row][col + 1] = L'\0'; // mark right half
+    if (w == 2 && col + 1 < max_width) {
+        glyph_matrix[row][col + 1] = ch; // mark trailing cell with same char (occupied)
     }
 }
 
+/* Erase symbol at row,col. If the leading char is double-width, erase both halves in one call. */
 void erase_symbol(int row, int col, wchar_t **glyph_matrix, int max_width)
 {
     if (row < 0 || col < 0 || col >= max_width)
         return;
 
-    int w = wcwidth(glyph_matrix[row][col]);
-    if (w <= 0) w = 1; // treat nonprintable as single width
+    wchar_t leading = glyph_matrix[row][col];
+    if (leading == L' ' || leading == 0) {
+        // nothing there; still ensure we clear the cell
+        mvaddwstr(row, col, L" ");
+        glyph_matrix[row][col] = L' ';
+        return;
+    }
+
+    int w = wcwidth(leading);
+    if (w <= 0) w = 1;
 
     if (w == 2 && col < max_width - 1) {
         mvaddwstr(row, col, L"  "); // erase both halves in one call
