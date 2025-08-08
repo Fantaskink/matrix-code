@@ -104,15 +104,15 @@ int main()
             if (head_row > 20 && head_row - 20 < height)
             {
                 attron(COLOR_PAIR(3)); // Set darker green color for glyph
-                symbol[0] = glyph_matrix[head_row - 20][column];
-                mvaddwstr(head_row - 20, column, symbol);
+                symbol[0] = glyph_matrix[head_row - 21][column];
+                mvaddwstr(head_row - 21, column, symbol);
             }
 
             if (head_row > 30 && head_row - 30 < height)
             {
                 attron(COLOR_PAIR(4)); // Set even darker green color for glyph
-                symbol[0] = glyph_matrix[head_row - 30][column];
-                mvaddwstr(head_row - 30, column, symbol);
+                symbol[0] = glyph_matrix[head_row - 31][column];
+                mvaddwstr(head_row - 31, column, symbol);
             }
 
             int tail_row = current->head_row - current->length;
