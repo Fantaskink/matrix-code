@@ -5,6 +5,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "ini_parser.h"
 
@@ -28,8 +29,7 @@ typedef struct
     int head_row;
     int length;
     int max_length;
-    int active;
-    int message_char;
+    bool active;
 } Trail;
 
 typedef struct
@@ -86,17 +86,17 @@ int main()
     int message_len = wcslen(message);
     int middle_row = height / 2;
     int message_columns[message_len];
-    int message_revealed[message_len]; // Track which message characters have been revealed
+    bool message_revealed[message_len]; // Track which message characters have been revealed
     int frame_counter = 0;
     int last_message_spawn_frame = 0;
-    int message_spawn_frame_interval = settings.message_spawn_frame_interval; // Spawn a message trail every 5 frames (0.5 seconds at 100ms per frame)
+    int message_spawn_frame_interval = settings.message_spawn_frame_interval; // Spawn a message trail every n frames (0.5 seconds at 100ms per frame)
 
     int leftmost_column = (width / 2) - (message_len / 2);
 
     for (int i = 0; i < message_len; i++)
     {
         message_columns[i] = leftmost_column + i;
-        message_revealed[i] = 0; // Initially no characters are revealed
+        message_revealed[i] = false; // Initially no characters are revealed
     }
 
     // dynamically allocate glyph_matrix
@@ -151,7 +151,7 @@ int main()
                     {
                         if (message_columns[j] == column)
                         {
-                            message_revealed[j] = 1;
+                            message_revealed[j] = true;
                             break;
                         }
                     }
@@ -183,7 +183,7 @@ int main()
                     {
                         if (message_columns[j] == column && message_revealed[j])
                         {
-                            is_revealed = 1;
+                            is_revealed = true;
                             break;
                         }
                     }
@@ -218,7 +218,7 @@ int main()
                     {
                         if (message_columns[j] == column && message_revealed[j])
                         {
-                            is_revealed = 1;
+                            is_revealed = true;
                             break;
                         }
                     }
@@ -253,7 +253,7 @@ int main()
                     {
                         if (message_columns[j] == column && message_revealed[j])
                         {
-                            is_revealed = 1;
+                            is_revealed = true;
                             break;
                         }
                     }
@@ -289,7 +289,7 @@ int main()
                     {
                         if (message_columns[j] == column && message_revealed[j])
                         {
-                            is_revealed = 1;
+                            is_revealed = true;
                             break;
                         }
                     }
@@ -309,7 +309,7 @@ int main()
 
                         if (tail_row >= height)
             {
-                current->active = 0;
+                current->active = false;
                 num_trails--;
             }
 
@@ -360,7 +360,7 @@ int main()
                                     trails[i].head_row = 0;
                                     trails[i].length = settings.max_trail_length;
                                     trails[i].max_length = settings.max_trail_length;
-                                    trails[i].active = 1;
+                                    trails[i].active = true;
                                     num_trails++;
                                     spawned = 1;
                                     last_message_spawn_frame = frame_counter;
@@ -405,7 +405,7 @@ int main()
         }
 
         refresh();
-        napms(settings.refresh_rate); // 0.1 second delay
+        napms(settings.refresh_rate);
     }
 
     endwin();
