@@ -8,15 +8,17 @@
 
 typedef enum
 {
-    COLOR_BRIGHT_GREEN = 8,
+    COLOR_BRIGHT_GREEN = 8, // First 8 slots are reserved by ncurses
     COLOR_DIMMER_GREEN,
     COLOR_DARK_GREEN
 } Color;
 
-#define PAIR_WHITE 1
-#define PAIR_BRIGHT_GREEN 2
-#define PAIR_DIMMER_GREEN 3
-#define PAIR_DARK_GREEN 4
+typedef enum {
+    PAIR_WHITE = 1,
+    PAIR_BRIGHT_GREEN,
+    PAIR_DIMMER_GREEN,
+    PAIR_DARK_GREEN
+} ColorPain;
 
 #define MAX_TRAIL_LENGTH 40
 
@@ -395,7 +397,7 @@ int main()
         }
 
         refresh();
-        napms(50); // 0.1 second delay
+        napms(75); // 0.1 second delay
     }
 
     endwin();
