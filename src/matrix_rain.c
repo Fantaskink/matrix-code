@@ -21,7 +21,7 @@ typedef enum {
     PAIR_BRIGHT_GREEN,
     PAIR_DIMMER_GREEN,
     PAIR_DARK_GREEN
-} ColorPain;
+} ColorPair;
 
 typedef struct
 {
@@ -41,13 +41,13 @@ typedef struct
 void handle_winch(int sig);
 int init_colors();
 wchar_t get_random_symbol();
-void draw_symbol(int row, int col, wchar_t ch, int color_pair,
+void draw_symbol(int row, int col, wchar_t ch, ColorPair color_pair,
                  Glyph **glyph_matrix, int max_width, int max_height);
 void erase_symbol(int row, int col, Glyph **glyph_matrix, int max_width);
-int is_message_column(int message_len, int column, int *message_columns);
-wchar_t get_message_char(int message_len, int column, int *message_columns, wchar_t *message);
+int is_message_column(size_t message_len, int column, int *message_columns);
+wchar_t get_message_char(size_t message_len, int column, int *message_columns, wchar_t *message);
 int would_overwrite_revealed_message(int row, int col, wchar_t ch, int middle_row,
-                                     int message_len, int *message_columns, int *message_revealed);
+                                     size_t message_len, int *message_columns, bool *message_revealed);
 
 const wchar_t *matrix_symbols = L"日ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ012345789Z:・.=*+-<>¦｜╌";
 
@@ -83,7 +83,7 @@ int main()
     // TODO allow any message
     // TODO ensure that message does not exceed screen width
     wchar_t message[] = L"SKINK SYSTEMS";
-    int message_len = wcslen(message);
+    size_t message_len = wcslen(message);
     int middle_row = height / 2;
     int message_columns[message_len];
     bool message_revealed[message_len]; // Track which message characters have been revealed
@@ -468,7 +468,7 @@ wchar_t get_random_symbol()
  * in both cells. This keeps later reads consistent.
  * Also checks if drawing a wide char would overwrite revealed message characters.
  */
-void draw_symbol(int row, int col, wchar_t ch, int color_pair,
+void draw_symbol(int row, int col, wchar_t ch, ColorPair color_pair,
                  Glyph **glyph_matrix, int max_width, int max_height)
 {
     if (row < 0 || row >= max_height || col < 0 || col >= max_width)
@@ -532,7 +532,7 @@ void erase_symbol(int row, int col, Glyph **glyph_matrix, int max_width)
     }
 }
 
-int is_message_column(int message_len, int column, int *message_columns)
+int is_message_column(size_t message_len, int column, int *message_columns)
 {
     for (int i = 0; i < message_len; i++)
     {
@@ -544,7 +544,7 @@ int is_message_column(int message_len, int column, int *message_columns)
     return 0;
 }
 
-wchar_t get_message_char(int message_len, int column, int *message_columns, wchar_t *message)
+wchar_t get_message_char(size_t message_len, int column, int *message_columns, wchar_t *message)
 {
     for (int i = 0; i < message_len; i++)
     {
@@ -560,7 +560,7 @@ wchar_t get_message_char(int message_len, int column, int *message_columns, wcha
  * This considers that wide characters (wcwidth=2) occupy two columns.
  */
 int would_overwrite_revealed_message(int row, int col, wchar_t ch, int middle_row,
-                                     int message_len, int *message_columns, int *message_revealed)
+                                     size_t message_len, int *message_columns, bool *message_revealed)
 {
     if (row != middle_row)
         return 0; // Not at message row
