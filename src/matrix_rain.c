@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "ini_parser.h"
+
 typedef enum
 {
     COLOR_BRIGHT_GREEN = 8, // First 8 slots are reserved by ncurses
@@ -55,6 +57,7 @@ int main()
 {
     srand((unsigned)time(NULL));
 
+
     setlocale(LC_ALL, "");
     int height, width;
 
@@ -72,6 +75,13 @@ int main()
         return 1;
     }
 
+    Settings settings;
+
+    if (ini_parse("settings.ini", handler, &settings) < 0) {
+        printf("Can't load 'settings.ini'\n");
+        return 1;
+    }
+
     // TODO allow any message
     // TODO ensure that message does not exceed screen width
     wchar_t message[] = L"SKINK SYSTEMS";
@@ -81,7 +91,7 @@ int main()
     int message_revealed[message_len]; // Track which message characters have been revealed
     int frame_counter = 0;
     int last_message_spawn_frame = 0;
-    int message_spawn_frame_interval = 5; // Spawn a message trail every 5 frames (0.5 seconds at 100ms per frame)
+    int message_spawn_frame_interval = settings.message_spawn_frame_interval; // Spawn a message trail every 5 frames (0.5 seconds at 100ms per frame)
 
     int leftmost_column = (width / 2) - (message_len / 2);
 
@@ -113,9 +123,9 @@ int main()
             glyph_matrix[i][j].symbol = L' ';
     }
 
-    int max_trails = width + width * (height / MAX_TRAIL_LENGTH);
+    size_t max_trails = width + width * (height / MAX_TRAIL_LENGTH);
     Trail trails[max_trails];
-    int num_trails = 0;
+    size_t num_trails = 0;
 
     for (int i = 0; i < max_trails; i++)
     {
@@ -397,7 +407,7 @@ int main()
         }
 
         refresh();
-        napms(75); // 0.1 second delay
+        napms(settings.refresh_rate); // 0.1 second delay
     }
 
     endwin();
