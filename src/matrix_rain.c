@@ -22,8 +22,6 @@ typedef enum {
     PAIR_DARK_GREEN
 } ColorPain;
 
-#define MAX_TRAIL_LENGTH 40
-
 typedef struct
 {
     int column;
@@ -123,7 +121,7 @@ int main()
             glyph_matrix[i][j].symbol = L' ';
     }
 
-    size_t max_trails = width + width * (height / MAX_TRAIL_LENGTH);
+    size_t max_trails = width + width * (height / settings.max_trail_length);
     Trail trails[max_trails];
     size_t num_trails = 0;
 
@@ -360,8 +358,8 @@ int main()
                                 {
                                     trails[i].column = msg_col;
                                     trails[i].head_row = 0;
-                                    trails[i].length = MAX_TRAIL_LENGTH;
-                                    trails[i].max_length = MAX_TRAIL_LENGTH;
+                                    trails[i].length = settings.max_trail_length;
+                                    trails[i].max_length = settings.max_trail_length;
                                     trails[i].active = 1;
                                     num_trails++;
                                     spawned = 1;
@@ -396,8 +394,8 @@ int main()
 
                         trails[i].column = random_column;
                         trails[i].head_row = 0;
-                        trails[i].length = MAX_TRAIL_LENGTH;
-                        trails[i].max_length = MAX_TRAIL_LENGTH;
+                        trails[i].length = settings.max_trail_length;
+                        trails[i].max_length = settings.max_trail_length;
                         trails[i].active = 1;
                         num_trails++;
                         break;

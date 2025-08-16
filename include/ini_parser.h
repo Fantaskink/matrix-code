@@ -11,6 +11,7 @@
 typedef struct {
     int refresh_rate;
     int message_spawn_frame_interval;
+    int max_trail_length;
 } Settings;
 
 int handler(void *user, const char *section, const char *name, const char *value);
