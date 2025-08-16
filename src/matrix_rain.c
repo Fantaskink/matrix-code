@@ -6,9 +6,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define COLOR_BRIGHT_GREEN 8
-#define COLOR_DIMMER_GREEN 9
-#define COLOR_DARK_GREEN 10
+typedef enum
+{
+    COLOR_BRIGHT_GREEN = 8,
+    COLOR_DIMMER_GREEN,
+    COLOR_DARK_GREEN
+} Color;
 
 #define PAIR_WHITE 1
 #define PAIR_BRIGHT_GREEN 2
@@ -27,7 +30,8 @@ typedef struct
     int message_char;
 } Trail;
 
-typedef struct {
+typedef struct
+{
     wchar_t symbol;
     int color;
 } Glyph;
@@ -40,8 +44,8 @@ void draw_symbol(int row, int col, wchar_t ch, int color_pair,
 void erase_symbol(int row, int col, Glyph **glyph_matrix, int max_width);
 int is_message_column(int message_len, int column, int *message_columns);
 wchar_t get_message_char(int message_len, int column, int *message_columns, wchar_t *message);
-int would_overwrite_revealed_message(int row, int col, wchar_t ch, int middle_row, 
-                                   int message_len, int *message_columns, int *message_revealed);
+int would_overwrite_revealed_message(int row, int col, wchar_t ch, int middle_row,
+                                     int message_len, int *message_columns, int *message_revealed);
 
 const wchar_t *matrix_symbols = L"日ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ012345789Z:・.=*+-<>¦｜╌";
 
@@ -149,8 +153,8 @@ int main()
                 {
                     wchar_t ch = get_random_symbol();
                     // Check if this character would overwrite revealed message characters
-                    if (!would_overwrite_revealed_message(head_row, column, ch, middle_row, 
-                                                         message_len, message_columns, message_revealed))
+                    if (!would_overwrite_revealed_message(head_row, column, ch, middle_row,
+                                                          message_len, message_columns, message_revealed))
                     {
                         draw_symbol(head_row, column, ch, PAIR_WHITE, glyph_matrix, width, height);
                     }
@@ -184,8 +188,8 @@ int main()
                 {
                     wchar_t ch = glyph_matrix[r][column].symbol;
                     // Check if this character would overwrite revealed message characters
-                    if (!would_overwrite_revealed_message(r, column, ch, middle_row, 
-                                                         message_len, message_columns, message_revealed))
+                    if (!would_overwrite_revealed_message(r, column, ch, middle_row,
+                                                          message_len, message_columns, message_revealed))
                     {
                         draw_symbol(r, column, ch, PAIR_BRIGHT_GREEN, glyph_matrix, width, height);
                     }
@@ -219,8 +223,8 @@ int main()
                 {
                     wchar_t ch = glyph_matrix[r][column].symbol;
                     // Check if this character would overwrite revealed message characters
-                    if (!would_overwrite_revealed_message(r, column, ch, middle_row, 
-                                                         message_len, message_columns, message_revealed))
+                    if (!would_overwrite_revealed_message(r, column, ch, middle_row,
+                                                          message_len, message_columns, message_revealed))
                     {
                         draw_symbol(r, column, ch, PAIR_DIMMER_GREEN, glyph_matrix, width, height);
                     }
@@ -254,8 +258,8 @@ int main()
                 {
                     wchar_t ch = glyph_matrix[r][column].symbol;
                     // Check if this character would overwrite revealed message characters
-                    if (!would_overwrite_revealed_message(r, column, ch, middle_row, 
-                                                         message_len, message_columns, message_revealed))
+                    if (!would_overwrite_revealed_message(r, column, ch, middle_row,
+                                                          message_len, message_columns, message_revealed))
                     {
                         draw_symbol(r, column, ch, PAIR_DARK_GREEN, glyph_matrix, width, height);
                     }
@@ -291,7 +295,9 @@ int main()
                 }
             }
 
-            if (tail_row >= height)
+            // ...inside the main trail loop, after head_row > 0 check...
+
+                        if (tail_row >= height)
             {
                 current->active = 0;
                 num_trails--;
@@ -319,7 +325,7 @@ int main()
         if (num_trails < max_trails)
         {
             int spawned = 0;
-            
+
             // First priority: spawn a trail in an unrevealed message column if it's time
             if (should_spawn_message_trail)
             {
@@ -332,7 +338,7 @@ int main()
                         int left_ok = (glyph_matrix[0][msg_col].symbol == L' ');
                         int left_left_ok = (msg_col > 0) ? (glyph_matrix[0][msg_col - 1].symbol == L' ') : 1;
                         int right_ok = (msg_col < width - 1) ? (glyph_matrix[0][msg_col + 1].symbol == L' ') : 1;
-                        
+
                         if (left_ok && left_left_ok && right_ok)
                         {
                             // Find an inactive trail to use
@@ -356,7 +362,7 @@ int main()
                     }
                 }
             }
-            
+
             // Second priority: spawn regular random trails if we didn't spawn a message trail
             if (!spawned)
             {
@@ -543,15 +549,16 @@ wchar_t get_message_char(int message_len, int column, int *message_columns, wcha
 /* Check if drawing a character at row,col would overwrite a revealed message character.
  * This considers that wide characters (wcwidth=2) occupy two columns.
  */
-int would_overwrite_revealed_message(int row, int col, wchar_t ch, int middle_row, 
-                                   int message_len, int *message_columns, int *message_revealed)
+int would_overwrite_revealed_message(int row, int col, wchar_t ch, int middle_row,
+                                     int message_len, int *message_columns, int *message_revealed)
 {
     if (row != middle_row)
         return 0; // Not at message row
-    
+
     int w = wcwidth(ch);
-    if (w <= 0) w = 1;
-    
+    if (w <= 0)
+        w = 1;
+
     // Check if this character or its wide extension would overwrite a revealed message char
     for (int offset = 0; offset < w; offset++)
     {
@@ -564,6 +571,6 @@ int would_overwrite_revealed_message(int row, int col, wchar_t ch, int middle_ro
             }
         }
     }
-    
+
     return 0; // Safe to draw
 }
