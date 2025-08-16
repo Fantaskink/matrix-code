@@ -91,7 +91,7 @@ int main()
     int last_message_spawn_frame = 0;
     int message_spawn_frame_interval = settings.message_spawn_frame_interval; // Spawn a message trail every n frames (0.5 seconds at 100ms per frame)
 
-    int leftmost_column = (width / 2) - (message_len / 2);
+    int leftmost_column = (int)(width / 2) - (int)(message_len / 2);
 
     for (int i = 0; i < message_len; i++)
     {
@@ -178,7 +178,7 @@ int main()
                 if (r == middle_row && is_message_column(message_len, column, message_columns))
                 {
                     // Check if this message character is revealed
-                    int is_revealed = 0;
+                    bool is_revealed = false;
                     for (int j = 0; j < message_len; j++)
                     {
                         if (message_columns[j] == column && message_revealed[j])
@@ -213,8 +213,8 @@ int main()
                 if (r == middle_row && is_message_column(message_len, column, message_columns))
                 {
                     // Check if this message character is revealed
-                    int is_revealed = 0;
-                    for (int j = 0; j < message_len; j++)
+                    bool is_revealed = 0;
+                    for (size_t j = 0; j < message_len; j++)
                     {
                         if (message_columns[j] == column && message_revealed[j])
                         {
@@ -248,8 +248,8 @@ int main()
                 if (r == middle_row && is_message_column(message_len, column, message_columns))
                 {
                     // Check if this message character is revealed
-                    int is_revealed = 0;
-                    for (int j = 0; j < message_len; j++)
+                    bool is_revealed = 0;
+                    for (size_t j = 0; j < message_len; j++)
                     {
                         if (message_columns[j] == column && message_revealed[j])
                         {
@@ -284,8 +284,8 @@ int main()
                 if (tail_row == middle_row && is_message_column(message_len, column, message_columns))
                 {
                     // Check if this message character is revealed
-                    int is_revealed = 0;
-                    for (int j = 0; j < message_len; j++)
+                    bool is_revealed = 0;
+                    for (size_t j = 0; j < message_len; j++)
                     {
                         if (message_columns[j] == column && message_revealed[j])
                         {
@@ -334,7 +334,7 @@ int main()
         // Add new trail if space available
         if (num_trails < max_trails)
         {
-            int spawned = 0;
+            bool spawned = false;
 
             // First priority: spawn a trail in an unrevealed message column if it's time
             if (should_spawn_message_trail)
@@ -362,7 +362,7 @@ int main()
                                     trails[i].max_length = settings.max_trail_length;
                                     trails[i].active = true;
                                     num_trails++;
-                                    spawned = 1;
+                                    spawned = true;
                                     last_message_spawn_frame = frame_counter;
                                     break;
                                 }
@@ -376,7 +376,7 @@ int main()
             // Second priority: spawn regular random trails if we didn't spawn a message trail
             if (!spawned)
             {
-                for (int i = 0; i < max_trails; i++)
+                for (size_t i = 0; i < max_trails; i++)
                 {
                     if (!trails[i].active)
                     {
