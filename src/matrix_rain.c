@@ -206,8 +206,8 @@ int main()
                 }
             }
 
-            /* DIMMER: 21 rows above head - but skip if it would overwrite revealed message */
-            r = head_row - 21;
+            /* DIMMER: halfway above head */
+            r = head_row - (settings.max_trail_length / 2 + 1);
             if (r >= 0 && r < height)
             {
                 if (r == middle_row && is_message_column(message_len, column, message_columns))
@@ -241,8 +241,8 @@ int main()
                 }
             }
 
-            /* DARK: 31 rows above head - but skip if it would overwrite revealed message */
-            r = head_row - 31;
+            /* DARK: 3/4 of the max length above head */
+            r = head_row - (((settings.max_trail_length / 4) * 3) + 1);
             if (r >= 0 && r < height)
             {
                 if (r == middle_row && is_message_column(message_len, column, message_columns))
