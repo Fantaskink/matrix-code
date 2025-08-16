@@ -86,7 +86,7 @@ int main()
     }
 
     // dynamically allocate glyph_matrix
-    Glyph **glyph_matrix = malloc(height * sizeof(wchar_t *));
+    Glyph **glyph_matrix = malloc(height * sizeof(Glyph *));
     if (!glyph_matrix)
     {
         endwin();
@@ -94,7 +94,7 @@ int main()
     }
     for (int i = 0; i < height; i++)
     {
-        glyph_matrix[i] = malloc(width * sizeof(wchar_t));
+        glyph_matrix[i] = malloc(width * sizeof(Glyph));
         if (!glyph_matrix[i])
         {
             for (int k = 0; k < i; k++)
