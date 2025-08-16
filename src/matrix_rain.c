@@ -7,16 +7,22 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define COLOR_BRIGHT_GREEN 8
-#define COLOR_DIMMER_GREEN 9
-#define COLOR_DARK_GREEN 10
-
-#define PAIR_WHITE 1
-#define PAIR_BRIGHT_GREEN 2
-#define PAIR_DIMMER_GREEN 3
-#define PAIR_DARK_GREEN 4
-
 #define MAX_TRAIL_LENGTH 40
+
+typedef enum
+{
+    COLOR_BRIGHT_GREEN = 8,
+    COLOR_DIMMER_GREEN,
+    COLOR_DARK_GREEN
+} Color;
+
+typedef enum
+{
+    PAIR_WHITE,
+    PAIR_BRIGHT_GREEN,
+    PAIR_DIMMER_GREEN,
+    PAIR_DARK_GREEN
+} ColorPair;
 
 typedef struct
 {
@@ -28,16 +34,22 @@ typedef struct
     int message_char;
 } Trail;
 
+typedef struct
+{
+    wchar_t symbol;
+    Color color;
+} Glyph;
+
 void handle_winch(int sig);
 int init_colors();
 wchar_t get_random_symbol();
-void draw_symbol(int row, int col, wchar_t ch, int color_pair,
-                 wchar_t **glyph_matrix, int max_width, int max_height);
-void erase_symbol(int row, int col, wchar_t **glyph_matrix, int max_width);
-int is_message_column(int message_len, int column, int *message_columns);
-wchar_t get_message_char(int message_len, int column, int *message_columns, wchar_t *message);
-int would_overwrite_revealed_message(int row, int col, wchar_t ch, int middle_row, 
-                                   int message_len, int *message_columns, int *message_revealed);
+void draw_symbol(size_t row, size_t col, wchar_t ch, int color_pair,
+                 Glyph **glyph_matrix, size_t max_width, size_t max_height);
+void erase_symbol(size_t row, size_t col, Glyph **glyph_matrix, size_t max_width);
+int is_message_column(size_t message_len, size_t column, size_t *message_columns);
+wchar_t get_message_char(size_t message_len, size_t column, size_t *message_columns, wchar_t *message);
+int would_overwrite_revealed_message(size_t row, size_t col, wchar_t ch, size_t middle_row,
+                                     size_t message_len, size_t *message_columns, int *message_revealed);
 
 const wchar_t *matrix_symbols = L"日ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ012345789Z:・.=*+-<>¦｜╌";
 
@@ -64,31 +76,31 @@ int main()
 
     // TODO allow any message
     // TODO ensure that message does not exceed screen width
-    wchar_t message[] = L"SKINK SYSTEMS";
-    int message_len = wcslen(message);
+    wchar_t message[] = L"SKINK ENGINEERING";
+    size_t message_len = wcslen(message);
     int middle_row = height / 2;
-    int message_columns[message_len];
+    size_t message_columns[message_len];
     int message_revealed[message_len]; // Track which message characters have been revealed
     int frame_counter = 0;
     int last_message_spawn_frame = 0;
     int message_spawn_frame_interval = 5; // Spawn a message trail every 5 frames (0.5 seconds at 100ms per frame)
 
-    int leftmost_column = (width / 2) - (message_len / 2);
+    size_t leftmost_column = (width / 2) - (message_len / 2);
 
-    for (int i = 0; i < message_len; i++)
+    for (size_t i = 0; i < message_len; i++)
     {
         message_columns[i] = leftmost_column + i;
         message_revealed[i] = 0; // Initially no characters are revealed
     }
 
     // dynamically allocate glyph_matrix
-    wchar_t **glyph_matrix = malloc(height * sizeof(wchar_t *));
+    Glyph **glyph_matrix = malloc(height * sizeof(wchar_t *));
     if (!glyph_matrix)
     {
         endwin();
         return 1;
     }
-    for (int i = 0; i < height; i++)
+    for (size_t i = 0; i < height; i++)
     {
         glyph_matrix[i] = malloc(width * sizeof(wchar_t));
         if (!glyph_matrix[i])
@@ -100,14 +112,14 @@ int main()
             return 1;
         }
         for (int j = 0; j < width; j++)
-            glyph_matrix[i][j] = L' ';
+            glyph_matrix[i][j].symbol = L' ';
     }
 
-    int max_trails = width + width * (height / MAX_TRAIL_LENGTH);
+    size_t max_trails = width + width * (height / MAX_TRAIL_LENGTH);
     Trail trails[max_trails];
-    int num_trails = 0;
+    size_t num_trails = 0;
 
-    for (int i = 0; i < max_trails; i++)
+    for (size_t i = 0; i < max_trails; i++)
     {
         trails[i].active = 0;
     }
@@ -145,8 +157,8 @@ int main()
                 {
                     wchar_t ch = get_random_symbol();
                     // Check if this character would overwrite revealed message characters
-                    if (!would_overwrite_revealed_message(head_row, column, ch, middle_row, 
-                                                         message_len, message_columns, message_revealed))
+                    if (!would_overwrite_revealed_message(head_row, column, ch, middle_row,
+                                                          message_len, message_columns, message_revealed))
                     {
                         draw_symbol(head_row, column, ch, PAIR_WHITE, glyph_matrix, width, height);
                     }
@@ -172,16 +184,16 @@ int main()
                     if (!is_revealed)
                     {
                         // Not revealed yet, draw normal trail character
-                        wchar_t ch = glyph_matrix[r][column];
+                        wchar_t ch = glyph_matrix[r][column].symbol;
                         draw_symbol(r, column, ch, PAIR_BRIGHT_GREEN, glyph_matrix, width, height);
                     }
                 }
                 else
                 {
-                    wchar_t ch = glyph_matrix[r][column];
+                    wchar_t ch = glyph_matrix[r][column].symbol;
                     // Check if this character would overwrite revealed message characters
-                    if (!would_overwrite_revealed_message(r, column, ch, middle_row, 
-                                                         message_len, message_columns, message_revealed))
+                    if (!would_overwrite_revealed_message(r, column, ch, middle_row,
+                                                          message_len, message_columns, message_revealed))
                     {
                         draw_symbol(r, column, ch, PAIR_BRIGHT_GREEN, glyph_matrix, width, height);
                     }
@@ -207,16 +219,16 @@ int main()
                     if (!is_revealed)
                     {
                         // Not revealed yet, draw normal trail character
-                        wchar_t ch = glyph_matrix[r][column];
+                        wchar_t ch = glyph_matrix[r][column].symbol;
                         draw_symbol(r, column, ch, PAIR_DIMMER_GREEN, glyph_matrix, width, height);
                     }
                 }
                 else
                 {
-                    wchar_t ch = glyph_matrix[r][column];
+                    wchar_t ch = glyph_matrix[r][column].symbol;
                     // Check if this character would overwrite revealed message characters
-                    if (!would_overwrite_revealed_message(r, column, ch, middle_row, 
-                                                         message_len, message_columns, message_revealed))
+                    if (!would_overwrite_revealed_message(r, column, ch, middle_row,
+                                                          message_len, message_columns, message_revealed))
                     {
                         draw_symbol(r, column, ch, PAIR_DIMMER_GREEN, glyph_matrix, width, height);
                     }
@@ -242,16 +254,16 @@ int main()
                     if (!is_revealed)
                     {
                         // Not revealed yet, draw normal trail character
-                        wchar_t ch = glyph_matrix[r][column];
+                        wchar_t ch = glyph_matrix[r][column].symbol;
                         draw_symbol(r, column, ch, PAIR_DARK_GREEN, glyph_matrix, width, height);
                     }
                 }
                 else
                 {
-                    wchar_t ch = glyph_matrix[r][column];
+                    wchar_t ch = glyph_matrix[r][column].symbol;
                     // Check if this character would overwrite revealed message characters
-                    if (!would_overwrite_revealed_message(r, column, ch, middle_row, 
-                                                         message_len, message_columns, message_revealed))
+                    if (!would_overwrite_revealed_message(r, column, ch, middle_row,
+                                                          message_len, message_columns, message_revealed))
                     {
                         draw_symbol(r, column, ch, PAIR_DARK_GREEN, glyph_matrix, width, height);
                     }
@@ -315,7 +327,7 @@ int main()
         if (num_trails < max_trails)
         {
             int spawned = 0;
-            
+
             // First priority: spawn a trail in an unrevealed message column if it's time
             if (should_spawn_message_trail)
             {
@@ -323,12 +335,12 @@ int main()
                 {
                     if (!message_revealed[msg_idx])
                     {
-                        int msg_col = message_columns[msg_idx];
+                        size_t msg_col = message_columns[msg_idx];
                         // Check if this column is available for a new trail
-                        int left_ok = (glyph_matrix[0][msg_col] == L' ');
-                        int left_left_ok = (msg_col > 0) ? (glyph_matrix[0][msg_col - 1] == L' ') : 1;
-                        int right_ok = (msg_col < width - 1) ? (glyph_matrix[0][msg_col + 1] == L' ') : 1;
-                        
+                        int left_ok = (glyph_matrix[0][msg_col].symbol == L' ');
+                        int left_left_ok = (msg_col > 0) ? (glyph_matrix[0][msg_col - 1].symbol == L' ') : 1;
+                        int right_ok = (msg_col < width - 1) ? (glyph_matrix[0][msg_col + 1].symbol == L' ') : 1;
+
                         if (left_ok && left_left_ok && right_ok)
                         {
                             // Find an inactive trail to use
@@ -352,7 +364,7 @@ int main()
                     }
                 }
             }
-            
+
             // Second priority: spawn regular random trails if we didn't spawn a message trail
             if (!spawned)
             {
@@ -363,9 +375,9 @@ int main()
                         int random_column = rand() % width;
 
                         // avoid starting in or next to an occupied cell (also treats right-half as occupied)
-                        int left_ok = (glyph_matrix[0][random_column] == L' ');
-                        int left_left_ok = (random_column > 0) ? (glyph_matrix[0][random_column - 1] == L' ') : 1;
-                        int right_ok = (random_column < width - 1) ? (glyph_matrix[0][random_column + 1] == L' ') : 1;
+                        int left_ok = (glyph_matrix[0][random_column].symbol == L' ');
+                        int left_left_ok = (random_column > 0) ? (glyph_matrix[0][random_column - 1].symbol == L' ') : 1;
+                        int right_ok = (random_column < width - 1) ? (glyph_matrix[0][random_column + 1].symbol == L' ') : 1;
 
                         if (!left_ok || !left_left_ok || !right_ok)
                         {
@@ -448,8 +460,8 @@ wchar_t get_random_symbol()
  * in both cells. This keeps later reads consistent.
  * Also checks if drawing a wide char would overwrite revealed message characters.
  */
-void draw_symbol(int row, int col, wchar_t ch, int color_pair,
-                 wchar_t **glyph_matrix, int max_width, int max_height)
+void draw_symbol(size_t row, size_t col, wchar_t ch, int color_pair,
+                 Glyph **glyph_matrix, size_t max_width, size_t max_height)
 {
     if (row < 0 || row >= max_height || col < 0 || col >= max_width)
         return;
@@ -471,25 +483,25 @@ void draw_symbol(int row, int col, wchar_t ch, int color_pair,
     mvaddwstr(row, col, buf);
 
     // mark matrix: store the same wchar in both halves so later reads are sane
-    glyph_matrix[row][col] = ch;
+    glyph_matrix[row][col].symbol = ch;
     if (w == 2 && col + 1 < max_width)
     {
-        glyph_matrix[row][col + 1] = ch; // mark trailing cell with same char (occupied)
+        glyph_matrix[row][col + 1].symbol = ch; // mark trailing cell with same char (occupied)
     }
 }
 
 /* Erase symbol at row,col. If the leading char is double-width, erase both halves in one call. */
-void erase_symbol(int row, int col, wchar_t **glyph_matrix, int max_width)
+void erase_symbol(size_t row, size_t col, Glyph **glyph_matrix, size_t max_width)
 {
     if (row < 0 || col < 0 || col >= max_width)
         return;
 
-    wchar_t leading = glyph_matrix[row][col];
+    wchar_t leading = glyph_matrix[row][col].symbol;
     if (leading == L' ' || leading == 0)
     {
         // nothing there; still ensure we clear the cell
         mvaddwstr(row, col, L" ");
-        glyph_matrix[row][col] = L' ';
+        glyph_matrix[row][col].symbol = L' ';
         return;
     }
 
@@ -500,17 +512,17 @@ void erase_symbol(int row, int col, wchar_t **glyph_matrix, int max_width)
     if (w == 2 && col < max_width - 1)
     {
         mvaddwstr(row, col, L"  "); // erase both halves in one call
-        glyph_matrix[row][col] = L' ';
-        glyph_matrix[row][col + 1] = L' ';
+        glyph_matrix[row][col].symbol = L' ';
+        glyph_matrix[row][col + 1].symbol = L' ';
     }
     else
     {
         mvaddwstr(row, col, L" ");
-        glyph_matrix[row][col] = L' ';
+        glyph_matrix[row][col].symbol = L' ';
     }
 }
 
-int is_message_column(int message_len, int column, int *message_columns)
+int is_message_column(size_t message_len, size_t column, size_t *message_columns)
 {
     for (int i = 0; i < message_len; i++)
     {
@@ -522,7 +534,7 @@ int is_message_column(int message_len, int column, int *message_columns)
     return 0;
 }
 
-wchar_t get_message_char(int message_len, int column, int *message_columns, wchar_t *message)
+wchar_t get_message_char(size_t message_len, size_t column, size_t *message_columns, wchar_t *message)
 {
     for (int i = 0; i < message_len; i++)
     {
@@ -537,20 +549,21 @@ wchar_t get_message_char(int message_len, int column, int *message_columns, wcha
 /* Check if drawing a character at row,col would overwrite a revealed message character.
  * This considers that wide characters (wcwidth=2) occupy two columns.
  */
-int would_overwrite_revealed_message(int row, int col, wchar_t ch, int middle_row, 
-                                   int message_len, int *message_columns, int *message_revealed)
+int would_overwrite_revealed_message(size_t row, size_t col, wchar_t ch, size_t middle_row,
+                                     size_t message_len, size_t *message_columns, int *message_revealed)
 {
     if (row != middle_row)
         return 0; // Not at message row
-    
+
     int w = wcwidth(ch);
-    if (w <= 0) w = 1;
-    
+    if (w <= 0)
+        w = 1;
+
     // Check if this character or its wide extension would overwrite a revealed message char
     for (int offset = 0; offset < w; offset++)
     {
         int check_col = col + offset;
-        for (int i = 0; i < message_len; i++)
+        for (size_t i = 0; i < message_len; i++)
         {
             if (message_columns[i] == check_col && message_revealed[i])
             {
@@ -558,6 +571,6 @@ int would_overwrite_revealed_message(int row, int col, wchar_t ch, int middle_ro
             }
         }
     }
-    
+
     return 0; // Safe to draw
 }
