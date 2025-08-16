@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE_EXTENDED 1
 #include <locale.h>
 #include <wchar.h>
 #include <ncursesw/ncurses.h>
@@ -25,10 +26,10 @@ typedef enum
 
 typedef struct
 {
-    size_t column;
-    size_t head_row;
-    size_t length;
-    size_t max_length;
+    int column;
+    int head_row;
+    int length;
+    int max_length;
     int active;
     int message_char;
 } Trail;
@@ -77,12 +78,12 @@ int main()
     // TODO ensure that message does not exceed screen width
     wchar_t message[] = L"SKINK ENGINEERING";
     size_t message_len = wcslen(message);
-    size_t middle_row = height / 2;
+    int middle_row = height / 2;
     size_t message_columns[message_len];
     int message_revealed[message_len]; // Track which message characters have been revealed
-    size_t frame_counter = 0;
-    size_t last_message_spawn_frame = 0;
-    size_t message_spawn_frame_interval = 5; // Spawn a message trail every 5 frames (0.5 seconds at 100ms per frame)
+    int frame_counter = 0;
+    int last_message_spawn_frame = 0;
+    int message_spawn_frame_interval = 5; // Spawn a message trail every 5 frames (0.5 seconds at 100ms per frame)
 
     size_t leftmost_column = (width / 2) - (message_len / 2);
 
@@ -104,7 +105,7 @@ int main()
         glyph_matrix[i] = malloc(width * sizeof(wchar_t));
         if (!glyph_matrix[i])
         {
-            for (size_t k = 0; k < i; k++)
+            for (int k = 0; k < i; k++)
                 free(glyph_matrix[k]);
             free(glyph_matrix);
             endwin();
@@ -131,8 +132,8 @@ int main()
             if (!current->active)
                 continue;
 
-            size_t head_row = current->head_row;
-            size_t column = current->column;
+            int head_row = current->head_row;
+            int column = current->column;
 
             /* HEAD - reveal message character if head passes over it */
             if (head_row >= 0 && head_row < height)
@@ -165,7 +166,7 @@ int main()
             }
 
             /* BODY: immediate above head - but skip if it would overwrite revealed message */
-            int r = (int)head_row - 1;
+            int r = head_row - 1;
             if (r >= 0 && r < height)
             {
                 if (r == middle_row && is_message_column(message_len, column, message_columns))
@@ -200,7 +201,7 @@ int main()
             }
 
             /* DIMMER: 21 rows above head - but skip if it would overwrite revealed message */
-            r = (int)head_row - 21;
+            r = head_row - 21;
             if (r >= 0 && r < height)
             {
                 if (r == middle_row && is_message_column(message_len, column, message_columns))
@@ -235,7 +236,7 @@ int main()
             }
 
             /* DARK: 31 rows above head - but skip if it would overwrite revealed message */
-            r = (int)head_row - 31;
+            r = head_row - 31;
             if (r >= 0 && r < height)
             {
                 if (r == middle_row && is_message_column(message_len, column, message_columns))
@@ -308,11 +309,11 @@ int main()
         }
 
         // Draw only the revealed message characters
-        for (size_t i = 0; i < message_len; i++)
+        for (int i = 0; i < message_len; i++)
         {
             if (message_revealed[i])
             {
-                size_t msg_col = message_columns[i];
+                int msg_col = message_columns[i];
                 wchar_t ch = message[i];
                 draw_symbol(middle_row, msg_col, ch, PAIR_WHITE, glyph_matrix, width, height);
             }
@@ -561,7 +562,7 @@ int would_overwrite_revealed_message(size_t row, size_t col, wchar_t ch, size_t 
     // Check if this character or its wide extension would overwrite a revealed message char
     for (int offset = 0; offset < w; offset++)
     {
-        size_t check_col = col + offset;
+        int check_col = col + offset;
         for (size_t i = 0; i < message_len; i++)
         {
             if (message_columns[i] == check_col && message_revealed[i])
