@@ -9,9 +9,11 @@
 
 #define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
 
+#define MESSAGE_MAX_LENGTH 2048
+
 typedef struct
 {
-    wchar_t message[256];
+    wchar_t message[MESSAGE_MAX_LENGTH];
     int refresh_rate;
     int message_spawn_frame_interval;
     int max_trail_length;

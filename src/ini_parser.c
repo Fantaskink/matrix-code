@@ -6,7 +6,7 @@ int handler(void *user, const char *section, const char *name, const char *value
     Settings *settings = (Settings *)user;
 
     if (MATCH("settings", "message")) {
-        if (strlen(value) > 256) {
+        if (strlen(value) > MESSAGE_MAX_LENGTH) {
             printf("Error: message length exceeds max allowed length\n");
             return 1;
         }

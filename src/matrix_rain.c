@@ -81,9 +81,14 @@ int main()
         return 1;
     }
 
-    // TODO ensure that message does not exceed screen width
     wchar_t *message = settings.message;
     size_t message_len = wcslen(message);
+    if (message_len > width)
+    {
+        printf("Error: message exceeds terminal width.\n");
+        return 1;
+    }
+    
     int middle_row = height / 2;
     int message_columns[message_len];
     bool message_revealed[message_len]; // Track which message characters have been revealed
