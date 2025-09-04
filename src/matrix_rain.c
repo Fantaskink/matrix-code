@@ -81,22 +81,22 @@ int main()
         return 1;
     }
 
-    wchar_t *message = settings.message;
-    size_t message_len = wcslen(message);
+    const wchar_t *message = settings.message;
+    const size_t message_len = wcslen(message);
     if (message_len > width)
     {
         printf("Error: message exceeds terminal width.\n");
         return 1;
     }
     
-    int middle_row = height / 2;
+    const int middle_row = height / 2;
     int message_columns[message_len];
     bool message_revealed[message_len]; // Track which message characters have been revealed
     int frame_counter = 0;
     int last_message_spawn_frame = 0;
     int message_spawn_frame_interval = settings.message_spawn_frame_interval; // Spawn a message trail every n frames (0.5 seconds at 100ms per frame)
 
-    int leftmost_column = (int)(width / 2) - (int)(message_len / 2);
+    const int leftmost_column = (int)(width / 2) - (int)(message_len / 2);
 
     for (int i = 0; i < message_len; i++)
     {
@@ -126,7 +126,7 @@ int main()
             glyph_matrix[i][j].symbol = L' ';
     }
 
-    size_t max_trails = width + width * (height / settings.max_trail_length);
+    const size_t max_trails = width + width * (height / settings.max_trail_length);
     Trail trails[max_trails];
     size_t num_trails = 0;
 
@@ -143,8 +143,8 @@ int main()
             if (!current->active)
                 continue;
 
-            int head_row = current->head_row;
-            int column = current->column;
+            const int head_row = current->head_row;
+            const int column = current->column;
 
             /* HEAD - reveal message character if head passes over it */
             if (head_row >= 0 && head_row < height)
@@ -281,7 +281,7 @@ int main()
                 }
             }
 
-            int tail_row = current->head_row - current->length;
+            const int tail_row = current->head_row - current->length;
 
             if (tail_row >= 0 && tail_row < height)
             {
