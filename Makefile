@@ -7,7 +7,7 @@ OUT = matrix
 # Homebrew ncursesw paths (adjust if needed)
 NCURSES_PREFIX = /opt/homebrew/opt/ncurses
 INIH_PREFIX = /opt/homebrew/opt/inih
-CFLAGS = -O2 -DNCURSES_WIDECHAR=1 -I$(NCURSES_PREFIX)/include -I$(INIH_PREFIX)/include -Iinclude
+CFLAGS = -Wall -Werror -O2 -DNCURSES_WIDECHAR=1 -I$(NCURSES_PREFIX)/include -I$(INIH_PREFIX)/include -Iinclude
 LDFLAGS = -L$(NCURSES_PREFIX)/lib -L$(INIH_PREFIX)/lib
 LIBS = -lncursesw -linih
 

@@ -16,7 +16,8 @@ typedef enum
     COLOR_DARK_GREEN
 } Color;
 
-typedef enum {
+typedef enum
+{
     PAIR_WHITE = 1,
     PAIR_BRIGHT_GREEN,
     PAIR_DIMMER_GREEN,
@@ -55,7 +56,6 @@ int main()
 {
     srand((unsigned)time(NULL));
 
-
     setlocale(LC_ALL, "");
     int height, width;
 
@@ -75,14 +75,14 @@ int main()
 
     Settings settings;
 
-    if (ini_parse("settings.ini", handler, &settings) < 0) {
+    if (ini_parse("settings.ini", handler, &settings) < 0)
+    {
         printf("Can't load 'settings.ini'\n");
         return 1;
     }
 
-    // TODO allow any message
     // TODO ensure that message does not exceed screen width
-    wchar_t message[] = L"SKINK SYSTEMS";
+    wchar_t *message = settings.message;
     size_t message_len = wcslen(message);
     int middle_row = height / 2;
     int message_columns[message_len];
@@ -307,7 +307,7 @@ int main()
 
             // ...inside the main trail loop, after head_row > 0 check...
 
-                        if (tail_row >= height)
+            if (tail_row >= height)
             {
                 current->active = false;
                 num_trails--;

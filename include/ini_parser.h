@@ -5,10 +5,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ini.h>
+#include <wchar.h>
 
 #define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
 
-typedef struct {
+typedef struct
+{
+    wchar_t message[256];
     int refresh_rate;
     int message_spawn_frame_interval;
     int max_trail_length;
