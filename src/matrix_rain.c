@@ -45,8 +45,8 @@ wchar_t get_random_symbol();
 void draw_symbol(int row, int col, wchar_t ch, ColorPair color_pair,
                  Glyph **glyph_matrix, int max_width, int max_height);
 void erase_symbol(int row, int col, Glyph **glyph_matrix, int max_width);
-int is_message_column(size_t message_len, int column, int *message_columns);
-wchar_t get_message_char(size_t message_len, int column, int *message_columns, wchar_t *message);
+bool is_message_column(size_t message_len, int column, int *message_columns);
+wchar_t get_message_char(size_t message_len, int column, int *message_columns, const wchar_t *message);
 int would_overwrite_revealed_message(int row, int col, wchar_t ch, int middle_row,
                                      size_t message_len, int *message_columns, bool *message_revealed);
 
@@ -88,7 +88,7 @@ int main()
         printf("Error: message exceeds terminal width.\n");
         return 1;
     }
-    
+
     const int middle_row = height / 2;
     int message_columns[message_len];
     bool message_revealed[message_len]; // Track which message characters have been revealed
@@ -334,7 +334,7 @@ int main()
 
         // Smart trail spawning - prioritize unrevealed message columns
         frame_counter++;
-        int should_spawn_message_trail = (frame_counter - last_message_spawn_frame) >= message_spawn_frame_interval;
+        const int should_spawn_message_trail = (frame_counter - last_message_spawn_frame) >= message_spawn_frame_interval;
 
         // Add new trail if space available
         if (num_trails < max_trails)
@@ -482,7 +482,7 @@ void draw_symbol(int row, int col, wchar_t ch, ColorPair color_pair,
     if (ch == L' ' || ch == 0)
         return; // nothing to draw
 
-    int w = wcwidth(ch);
+    const int w = wcwidth(ch);
     if (w == 2 && col == max_width - 1)
     {
         // Can't place wide char at last column
@@ -537,19 +537,19 @@ void erase_symbol(int row, int col, Glyph **glyph_matrix, int max_width)
     }
 }
 
-int is_message_column(size_t message_len, int column, int *message_columns)
+bool is_message_column(size_t message_len, int column, int *message_columns)
 {
     for (int i = 0; i < message_len; i++)
     {
         if (column == message_columns[i])
         {
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
-wchar_t get_message_char(size_t message_len, int column, int *message_columns, wchar_t *message)
+wchar_t get_message_char(size_t message_len, int column, int *message_columns, const wchar_t *message)
 {
     for (int i = 0; i < message_len; i++)
     {
