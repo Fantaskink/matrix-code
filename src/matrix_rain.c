@@ -137,7 +137,7 @@ int main()
 
     while (1)
     {
-        for (size_t i = 0; i < (size_t)max_trails; i++)
+        for (size_t i = 0; i < max_trails; i++)
         {
             Trail *current = &trails[i];
             if (!current->active)
@@ -253,7 +253,7 @@ int main()
                 if (r == middle_row && is_message_column(message_len, column, message_columns))
                 {
                     // Check if this message character is revealed
-                    bool is_revealed = 0;
+                    bool is_revealed = false;
                     for (size_t j = 0; j < message_len; j++)
                     {
                         if (message_columns[j] == column && message_revealed[j])
@@ -265,7 +265,7 @@ int main()
                     if (!is_revealed)
                     {
                         // Not revealed yet, draw normal trail character
-                        wchar_t ch = glyph_matrix[r][column].symbol;
+                        const wchar_t ch = glyph_matrix[r][column].symbol;
                         draw_symbol(r, column, ch, PAIR_DARK_GREEN, glyph_matrix, width, height);
                     }
                 }
